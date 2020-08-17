@@ -1,0 +1,90 @@
+#!/usr/bin/env python3
+
+import rospy
+import subprocess
+import time
+import numpy as np
+
+from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import Twist
+
+rospy.init_node('life_node',anonymous=True)
+now = rospy.get_rostime().secs
+subprocess.call('rosservice call /enable_motors "enable: false"',shell=True)
+subprocess.call('rosservice call /gazebo/reset_simulation',shell=True)
+subprocess.call('rosservice call /gazebo/unpause_physics',shell=True)
+time.sleep(0.1)
+subprocess.call('rosservice call /enable_motors "enable: true"',shell=True)
+
+height = 0
+takeoff_height = float(rospy.get_param('starting_height'))
+
+def data_callback(data):
+    global height
+    height = data.pose.position.z
+
+rospy.Subscriber('/ground_truth_to_tf/pose',PoseStamped,data_callback)
+cmd_pub = rospy.Publisher('/process_cmd_vel',Twist)
+
+takeoff_thresh = 0
+dist_eps = 0.1
+while True:
+    lower_bound = takeoff_height - dist_eps
+    upper_bound = takeoff_height + dist_eps
+    while takeoff_thresh < 500:
+        if height < lower_bound:
+            delta_height = +0.7 #* ((lower_bound - height)/lower_bound)
+            takeoff_thresh = 0
+        elif height > upper_bound:
+            delta_height = -0.7 #* ((height - upper_bound)/(upper_bound+0.5))
+            takeoff_thresh = 0
+        else:
+            delta_height = 0
+            takeoff_thresh +=1
+            print(takeoff_thresh)
+            time.sleep(0.001)
+    
+        print(delta_height)
+        # print("Delta Height  = ",delta_height)
+    
+        data = Twist()
+        data.linear.z = delta_height
+        cmd_pub.publish(data)
+
+    print("Takeoff Done")
+    break
+    # data = Twist()
+    # data.angular.z = 1
+    # cmd_pub.publish(data)
+
+# for i in range(50):
+#     print("STEP {} :: CurrentHeight {} ".format(i+1,height))
+#     for_rand = np.random.rand()
+#     ang_rand = 2*np.random.rand()-1
+#     data = Twist()
+#     data.linear.x = for_rand
+#     data.linear.z = 0.025
+#     data.angular.z = ang_rand
+#     time.sleep(0.2)
+#     cmd_pub.publish(data)
+
+# rate = rospy.Rate(40)
+# for i in range(50):
+#     print("STEP {} :: CurrentHeight {} ".format(i+1,height))
+#     for_rand = np.random.rand()
+#     ang_rand = 2*np.random.rand()-1
+#     data = Twist()
+#     data.linear.x = for_rand
+#     data.angular.z = ang_rand
+#     for j in range(6):
+#         rate.sleep()
+#         cmd_pub.publish(data)
+
+
+print("Total Duration = ",str(rospy.get_rostime().secs - now))
+subprocess.call('rosservice call /gazebo/pause_physics "{}"',shell=True)
+# subprocess.call('rosservice call /enable_motors "enable: false"',shell=True)
+
+
+
+# rospy.spin()

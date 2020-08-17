@@ -1,0 +1,51 @@
+<?xml version='1.0'?>
+<sdf version='1.5'>
+  <model name='payload'>
+    <link name='link'>
+      <pose>0 0 0 0 -0 0</pose>
+      <inertial>
+        <mass>1</mass>
+        <inertia>
+          <ixx>0.145833</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.145833</iyy>
+          <iyz>0</iyz>
+          <izz>0.125</izz>
+        </inertia>
+        <pose>0 0 0 0 -0 0</pose>
+      </inertial>
+      <self_collide>0</self_collide>
+      <kinematic>0</kinematic>
+      <gravity>0</gravity>
+      <visual name='visual'>
+        <geometry>
+          <box>
+            <size>0.5 0.5 0.5</size>
+          </box>
+        </geometry>
+        <material>
+          <script>
+            <name>Gazebo/Grey</name>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+          </script>
+          <shader type='vertex'>
+            <normal_map>__default__</normal_map>
+          </shader>
+          <ambient>0.89 0.22 0.20 1</ambient>
+          <diffuse>0.89 0.22 0.20 1</diffuse>
+          <specular>0.89 0.22 0.20 1</specular>
+          <emissive>0.89 0.22 0.20 1</emissive>
+        </material>
+        <pose>0 0 0 0 -0 0</pose>
+        <cast_shadows>0</cast_shadows>
+        <transparency>0.1</transparency>
+      </visual>
+    </link>
+    <static>0</static>
+    <allow_auto_disable>1</allow_auto_disable>
+    <plugin name="move" filename="libmove.so">
+      <topic-name>/payload_position</topic-name>
+    </plugin>
+  </model>
+</sdf>

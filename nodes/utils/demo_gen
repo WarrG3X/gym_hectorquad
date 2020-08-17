@@ -1,0 +1,126 @@
+#!/usr/bin/env python3
+
+
+import gym
+import gym_hectorquad
+import rospy
+import time
+
+import numpy as np
+import tf.transformations as tft
+
+from geometry_msgs.msg import Twist, PoseStamped, Vector3, Quaternion, Point
+
+
+#Init Variables
+episode_count = 0
+delta = 0
+now = time.time()
+
+# Goal Callback
+current_goal = Vector3(0,0,0)
+def goal_callback(goal_s):
+    global current_goal
+    current_goal = goal_s
+
+# Pose Callback
+def pose_callback(pose_s):
+    global delta
+    attitude = tft.euler_from_quaternion([pose_s.pose.orientation.w,pose_s.pose.orientation.x,pose_s.pose.orientation.y,pose_s.pose.orientation.z])[0]
+    disp_vector = Vector3(current_goal.x-pose_s.pose.position.x,current_goal.y - pose_s.pose.position.y, current_goal.z - pose_s.pose.position.z)
+    goal_att = np.arctan2(disp_vector.y,-disp_vector.x)
+    delta = (goal_att - attitude + 3*np.pi) % (2*np.pi) - np.pi
+
+# Calculate Action
+def calculate_action():
+    linear_eps = np.pi/4
+    delta_eps = 0.349 # 20 Deg
+
+    linear = 0
+    angular = 0
+
+    if abs(delta) > linear_eps:
+        linear = 0
+    else:
+        linear = 1
+
+    if abs(delta) < delta_eps:
+        angular = 0
+    elif -delta <= 0:
+        angular = -1
+    else:
+        angular = 1
+    
+    return np.array([linear,angular])
+
+
+actions = []
+observations = []
+infos = []
+
+
+def main():
+
+    # Initialization
+    rospy.init_node('hectorquad_env_node',anonymous=True)
+    try:
+        env_name = rospy.get_param('env_name')
+    except:
+        env_name = 'HectorQuadReach-v1'
+    env=gym.make(env_name)
+    rospy.Subscriber('/ground_truth_to_tf/pose',PoseStamped,pose_callback,queue_size=1)
+    rospy.Subscriber('/goal_position',Vector3,goal_callback,queue_size=1)
+    
+    demo_count = 100
+
+
+    while len(actions) < demo_count:
+        print("Resetting!")
+        obs = env.reset()
+        print("ITERATION NUMBER ", len(actions)+1)
+        gen_rollouts(env, obs)
+        
+
+    fileName = "data_hectorquad_rtf0"
+    fileName += "_" + str(demo_count)
+    fileName += ".npz"
+
+    print("Done! Saving data to {}".format(fileName))
+        
+    np.savez_compressed(fileName, acs=actions, obs=observations, info=infos)
+
+
+def gen_rollouts(env,obs):
+
+    episodeAcs = []
+    episodeObs = []
+    episodeInfo = []
+
+    episodeObs.append(obs)
+
+    limit = env._max_episode_steps
+
+    timestep = 1
+    done = False
+
+    while timestep <= limit:
+        print("STEP {}".format(timestep))
+        action = calculate_action()
+        if done:
+            action[0] = action[1] = 0
+        observation, reward, done, info = env.step(action)
+        
+        episodeAcs.append(action)
+        episodeObs.append(observation)
+        episodeInfo.append(info)
+        
+        timestep += 1
+
+    actions.append(episodeAcs)
+    observations.append(episodeObs)
+    infos.append(episodeInfo)
+
+
+if __name__=='__main__':
+    main()
+    print("Total Time Taken = ",time.time()-now)

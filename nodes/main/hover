@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+
+import rospy
+import time
+from rospy import ROSTimeMovedBackwardsException
+from geometry_msgs.msg import Twist
+
+rospy.init_node('hover_node',anonymous=True)
+time.sleep(5) # Wait to give time for controller to load
+
+cmd_recieved = None
+
+def process_twist(data):
+    global cmd_recieved
+    cmd_recieved = data
+    print("Publishing to cmd_vel")
+
+rospy.Subscriber('/process_cmd_vel',Twist,process_twist)
+cmd_pub = rospy.Publisher('cmd_vel',Twist,queue_size=1)
+
+def hover():
+    global cmd_recieved
+    rate = rospy.Rate(20,reset=True)
+    data = Twist()
+    if cmd_recieved !=  None:
+        data = cmd_recieved
+        cmd_recieved = None
+    cmd_pub.publish(data)
+    rate.sleep()
+
+    # except ROSTimeMovedBackwardsException:
+        # print("World Reset")
+if __name__ == '__main__':
+    while True:
+        try:
+            hover()
+        except rospy.ROSInterruptException:
+            rospy.signal_shutdown("Shutting Down")
+            exit("done")

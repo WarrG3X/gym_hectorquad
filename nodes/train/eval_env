@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+
+
+import gym
+import gym_hectorquad
+import rospy
+import pickle
+
+import config
+
+rospy.init_node('hectorquad_env_eval_node',anonymous=True)
+
+policy_file = "~/quad_ws/src/gym_hectorquad/policies/reach_empty_her30_demo/policy_best.pkl"
+with open(policy_file, 'rb') as f:
+    policy = pickle.load(f)
+
+env_name = policy.info['env_name']
+print(env_name)
+env = gym.make(env_name)
+
+
+while True:
+    print("New Episode")
+    obs = env.reset()
+    initial_o = obs['observation']
+    initial_ag = obs['achieved_goal']
+    g = obs['desired_goal']
+    o = initial_o.copy()
+    ag = initial_ag.copy()
+
+
+    for t in range(50):
+        policy_output = policy.get_actions(
+            o, ag, g,
+            compute_Q=True,
+            noise_eps= 0.,
+            random_eps=0.,
+            use_target_net=False)
+
+        u, Q = policy_output
+
+        print(u)
+        obs,reward,done,info = env.step(u)
+        g = obs['desired_goal']
+        o = obs['observation']
+        ag = obs['achieved_goal']

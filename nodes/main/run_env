@@ -1,0 +1,30 @@
+#!/usr/bin/env python3
+
+
+import gym
+import gym_hectorquad
+import rospy
+import time
+
+rospy.init_node('hectorquad_env_node',anonymous=True)
+try:
+    env_name = rospy.get_param('env_name')
+except:
+    env_name = 'HectorQuadReach-v1'
+
+env=gym.make(env_name)
+# observation = env.reset()
+
+count = 0
+while True:
+    now = time.time()
+    observation = env.reset()
+    count +=1
+    print("Episode {}".format(count))
+    for i in range(50):
+        print("STEP ",i+1)
+        action = env.action_space.sample()
+        observation, reward, done, info = env.step(action)
+        if done:
+            print("Inside Target!")
+    print("Total Time Taken = ",time.time()-now)

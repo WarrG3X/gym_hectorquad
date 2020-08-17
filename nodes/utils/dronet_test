@@ -1,0 +1,85 @@
+#!/usr/bin/env python3
+
+
+import gym
+import gym_hectorquad
+import rospy
+import time
+
+import numpy as np
+import tf.transformations as tft
+
+from dronet_perception.msg import CNN_out
+
+# Initialization
+rospy.init_node('hectorquad_env_node',anonymous=True)
+try:
+    env_name = rospy.get_param('env_name')
+except:
+    env_name = 'HectorQuadReach-v1'
+
+env=gym.make(env_name)
+
+cnn_steer = 0
+cnn_collprob = 1
+
+def cnn_callback(cnn_preds):
+    global cnn_steer,cnn_collprob
+    cnn_steer = cnn_preds.steering_angle
+    cnn_collprob = cnn_preds.collision_prob
+    # print(cnn_steer,cnn_collprob)
+
+
+
+# Calculate Action using a simple controller
+def calculate_action_simple_control():
+    global fvel,yaw
+    fvel = max(0,1-cnn_collprob)
+    yaw = cnn_steer
+    return np.array([fvel,yaw])
+
+# Calculate Action using the original dronet controller
+max_forward_index = 1.0 # Max Forward Velocity
+critical_fvel = 0.1 # Velocity below which the drone will stop
+alpha_fvel = 0.5 #Alpha (0-1) acts as the weight for the new velocity while 1-alpha for previous
+alpha_yaw = 0.8
+fvel = 0
+yaw = 0
+
+def calculate_action_dronet_control():
+    global fvel,yaw
+    desired_vel = max(0,1-cnn_collprob) # Convert collprob to vel
+    desired_vel = desired_vel * max_forward_index # Limit using max_forward_index
+    desired_vel = (1-alpha_fvel)*fvel + alpha_fvel*desired_vel #(1-alpha)*current_vel + alpha*(new_vel)
+
+    if desired_vel < critical_fvel:
+        desired_vel = 0
+    fvel = desired_vel
+
+    desired_yaw = (1-alpha_yaw)*yaw + alpha_yaw*cnn_steer
+    yaw = desired_yaw
+
+    return np.array([fvel,yaw])
+
+
+
+rospy.Subscriber('/cnn_out/predictions',CNN_out,cnn_callback,queue_size=1)
+
+count = 0
+done = False
+while True:
+    now = time.time()
+    observation = env.reset()
+    fvel = yaw = 0
+    count +=1
+    print("Episode {}".format(count))
+    for i in range(500):
+        action = calculate_action_dronet_control()
+        print("STEP ",i+1, action[0],action[1])
+
+        observation, reward, done, info = env.step(action)
+        if done:
+            print("Inside Target!")
+    print("Total Time Taken = ",time.time()-now)
+
+

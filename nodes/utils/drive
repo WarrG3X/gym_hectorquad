@@ -1,0 +1,84 @@
+#!/usr/bin/env python3
+
+
+import gym
+import gym_hectorquad
+import rospy
+import time
+
+import numpy as np
+import tf.transformations as tft
+
+from geometry_msgs.msg import Twist, PoseStamped, Vector3, Quaternion, Point
+
+
+# Initialization
+rospy.init_node('hectorquad_env_node',anonymous=True)
+try:
+    env_name = rospy.get_param('env_name')
+except:
+    env_name = 'HectorQuadReach-v1'
+
+env=gym.make(env_name)
+
+# Goal Callback
+current_goal = Vector3(0,0,0)
+def goal_callback(goal_s):
+    global current_goal
+    current_goal = goal_s
+    # print("Current Goal ",current_goal)
+
+# Pose Callback
+delta = 0
+def pose_callback(pose_s):
+    global delta
+    attitude = tft.euler_from_quaternion([pose_s.pose.orientation.w,pose_s.pose.orientation.x,pose_s.pose.orientation.y,pose_s.pose.orientation.z])[0]
+    disp_vector = Vector3(current_goal.x-pose_s.pose.position.x,current_goal.y - pose_s.pose.position.y, current_goal.z - pose_s.pose.position.z)
+    goal_att = np.arctan2(disp_vector.y,-disp_vector.x)
+    delta = (goal_att - attitude + 3*np.pi) % (2*np.pi) - np.pi
+    # print("pose_callback",attitude,goal_att)
+
+# Calculate Action
+def calculate_action():
+    linear_eps = np.pi/4
+    delta_eps = 0.349 # 20 Deg
+
+    linear = 0
+    angular = 0
+
+    if abs(delta) > linear_eps:
+        linear = 0
+    else:
+        linear = 1
+
+    if abs(delta) < delta_eps:
+        angular = 0
+    elif -delta <= 0:
+        angular = -1
+    else:
+        angular = 1
+    
+    return np.array([linear,angular])
+
+rospy.Subscriber('/ground_truth_to_tf/pose',PoseStamped,pose_callback,queue_size=1)
+rospy.Subscriber('/goal_position',Vector3,goal_callback,queue_size=1)
+
+count = 0
+done = False
+while True:
+    now = time.time()
+    observation = env.reset()
+    count +=1
+    print("Episode {}".format(count))
+    for i in range(50):
+        action = calculate_action()
+        print("STEP ",i+1, action[0],action[1])
+        if done:
+            action[0] = action[1] = 0
+
+        observation, reward, done, info = env.step(action)
+        if done:
+            print("Inside Target!")
+    print("Total Time Taken = ",time.time()-now)
+
+

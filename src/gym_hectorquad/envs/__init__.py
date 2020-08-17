@@ -1,0 +1,3 @@
+from gym_hectorquad.envs.hectorquad_reach_env import HectorQuadReachEnv
+from gym_hectorquad.envs.hectorquad_payload_env import HectorQuadPayloadEnv
+from gym_hectorquad.envs.hectorquad_forest_env import HectorQuadForestEnv

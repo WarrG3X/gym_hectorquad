@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Define parameters from arguments -->
+
+  <arg name="world_name" default="empty"/> <!-- worldname is used to load correct config, name logging and find modified logname -->
+  <param name="world_name" value="$(arg world_name)"/>
+  <arg name="world_file" default="$(find gym_hectorquad)/worlds/$(arg world_name).world"/> <!-- worldfile defines the actual gazebo world file loaded -->
+  <param name="world_file" value="$(arg world_file)"/>
+  <arg name="graphics" default="false"/> 
+  <param name="graphics" value="$(arg graphics)"/>
+  
+
+  <!-- Gazebo with world -->
+  <!-- We resume the logic in empty_world.launch, changing only the name of the world to be launched-->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <!--use line for spawning world from .dae mesh in gz model folder-->
+    <arg name="world_name" value="$(arg world_file)"/>
+    <!-- <arg name="gui" value="false"/> -->
+    <arg name="gui" value="$(arg graphics)"/>
+    <arg name="headless" default="false"/>
+    <!-- <arg name="paused" default="true"/>     -->
+  </include>
+
+  <!-- UAV flies at a certain height -->
+  <arg name="starting_height" default="1"/>
+  <param name="starting_height" value="$(arg starting_height)"/>
+  
+
+  <!-- Spawn simulated quadrotor uav -->
+  <arg name="x" default="0"/>
+  <arg name="y" default="0"/>
+  <arg name="z" default="0.01"/>
+  <arg name="Yspawned" default="1.57"/>
+  <include file="$(find hector_quadrotor_gazebo)/launch/spawn_quadrotor.launch">
+    <arg name="x" value="$(arg x)"/>
+    <arg name="y" value="$(arg y)"/>
+    <arg name="z" value="$(arg z)"/>
+    <arg name="Y" default="$(arg Yspawned)"/>
+    <arg name="controllers" value="
+      controller/attitude
+      controller/velocity
+      controller/position
+    "/>
+  </include>
+
+
+  <!-- Enable Motors by Default -->
+  <node pkg="gym_hectorquad" name="hover_node" type="hover"/>
+
+  <!-- Start Env Node-->
+  <node pkg="gym_hectorquad" name="train_node" type="train_node" output="screen"/>
+
+  <!-- Start Rviz Visualization-->
+  <!-- <node type="rviz" name="rviz" pkg="rviz" args="-d $(find gym_hectorquad)/rviz/ghq_markers.rviz" /> -->
+  <node pkg="gym_hectorquad" name="viz_node" type="viz_node"/>  
+  
+
+</launch>

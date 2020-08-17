@@ -1,0 +1,159 @@
+#!/usr/bin/env python3
+
+import rospy
+import rospkg
+import os
+import subprocess
+import numpy as np
+import tf.transformations as tft
+
+from geometry_msgs.msg import Twist, PoseStamped, Vector3, Quaternion, Point
+from gazebo_msgs.msg import ModelState 
+from gazebo_msgs.srv import SetModelState
+from visualization_msgs.msg import Marker
+
+
+
+rospy.init_node('viz_node',anonymous=True)
+current_goal = Vector3(0,0,0)
+
+
+def pose_callback(pose_s):
+    robotMarker = Marker()
+    robotMarker.header.frame_id = "world"
+    robotMarker.header.stamp    = rospy.get_rostime()
+    robotMarker.ns = ""
+    robotMarker.id = 0
+    robotMarker.type = 0
+    robotMarker.action = 0
+
+    # angle_vector = [pose_s.pose.position.x-current_goal.x,pose_s.pose.position.y-current_goal.y,pose_s.pose.position.z-current_goal.z]
+    # orientation = Quaternion(*tft.quaternion_from_euler(angle_vector[0],angle_vector[1],angle_vector[2]))
+    start_point = Point(pose_s.pose.position.x,pose_s.pose.position.y,pose_s.pose.position.z)
+    end_point = Point(current_goal.x,current_goal.y,pose_s.pose.position.z)
+
+    robotMarker.points = [start_point,end_point]
+
+    # robotMarker.pose.position = pose_s.pose.position
+    # robotMarker.pose.orientation = orientation
+
+    robotMarker.scale.x = 0.05
+    robotMarker.scale.y = 0.1
+    robotMarker.scale.z = 0.1
+
+    robotMarker.color.r = 0.0
+    robotMarker.color.g = 1.0
+    robotMarker.color.b = 0.0
+    robotMarker.color.a = 1.0
+
+    robotMarker.lifetime = rospy.Duration(0)
+
+    pose_pub.publish(robotMarker)
+
+    attitude = tft.euler_from_quaternion([pose_s.pose.orientation.w,pose_s.pose.orientation.x,pose_s.pose.orientation.y,pose_s.pose.orientation.z])[0]
+    disp_vector = Vector3(current_goal.x-pose_s.pose.position.x,current_goal.y - pose_s.pose.position.y, current_goal.z - pose_s.pose.position.z)
+
+    goal_att = np.arctan2(disp_vector.y,-disp_vector.x)
+    # print((attitude-goal_att)/np.pi)
+    delta = (goal_att - attitude + 3*np.pi) % (2*np.pi) - np.pi
+    if -delta < 0:
+        print("Right")
+    else:
+        print("Left")
+
+
+
+
+def goal_callback(goal_s):
+    global current_goal
+    # current_goal = [goal_s.x,goal_s.y,goal_s.z]
+    current_goal = goal_s
+
+    robotMarker = Marker()
+    robotMarker.header.frame_id = "world"
+    robotMarker.header.stamp    = rospy.get_rostime()
+    robotMarker.ns = ""
+    robotMarker.id = 0
+    robotMarker.type = 3
+    robotMarker.action = 0
+    robotMarker.pose.position.x = goal_s.x
+    robotMarker.pose.position.y = goal_s.y
+    robotMarker.pose.orientation.x = 0
+    robotMarker.pose.orientation.y = 0
+    robotMarker.pose.orientation.z = 0
+    robotMarker.pose.orientation.w = 1.0
+    robotMarker.scale.x = 0.5
+    robotMarker.scale.y = 0.5
+    robotMarker.scale.z = 2.0
+
+    robotMarker.color.r = 0.0
+    robotMarker.color.g = 0.8
+    robotMarker.color.b = 0.6
+    robotMarker.color.a = 0.8
+
+    robotMarker.lifetime = rospy.Duration(0)
+
+    goal_pub.publish(robotMarker)
+
+def payload_callback(payload_s):
+
+    robotMarker = Marker()
+    robotMarker.header.frame_id = "world"
+    robotMarker.header.stamp    = rospy.get_rostime()
+    robotMarker.ns = ""
+    robotMarker.id = 0
+    robotMarker.type = 1
+    robotMarker.action = 0
+    robotMarker.pose.position.x = payload_s.x
+    robotMarker.pose.position.y = payload_s.y
+    robotMarker.pose.position.z = payload_s.z
+    robotMarker.pose.orientation.x = 0
+    robotMarker.pose.orientation.y = 0
+    robotMarker.pose.orientation.z = 0
+    robotMarker.pose.orientation.w = 1.0
+    robotMarker.scale.x = 0.5
+    robotMarker.scale.y = 0.5
+    robotMarker.scale.z = 0.5
+
+    robotMarker.color.r = 0.89
+    robotMarker.color.g = 0.22
+    robotMarker.color.b = 0.20
+    robotMarker.color.a = 0.8
+
+    robotMarker.lifetime = rospy.Duration(0)
+
+    payload_pub.publish(robotMarker)
+
+pose_pub = rospy.Publisher('/angle_marker', Marker, queue_size=1)
+goal_pub = rospy.Publisher('/goal_marker', Marker, queue_size=1)
+payload_pub = rospy.Publisher('/payload_marker', Marker, queue_size=1)
+rospy.Subscriber('/ground_truth_to_tf/pose',PoseStamped,pose_callback,queue_size=1)
+rospy.Subscriber('/goal_position',Vector3,goal_callback,queue_size=1)
+rospy.Subscriber('/payload_position',Vector3,payload_callback,queue_size=1)
+
+rospy.spin()
+
+
+
+# cmd_recieved = None
+
+# def process_twist(data):
+#     global cmd_recieved
+#     cmd_recieved = data
+#     print("Publishing to cmd_vel")
+
+# rospy.Subscriber('/process_cmd_vel',Twist,process_twist)
+# cmd_pub = rospy.Publisher('cmd_vel',Twist,queue_size=1)
+
+# while True:
+#     try:
+#         rate = rospy.Rate(20,reset=True)
+#         data = Twist()
+#         if cmd_recieved !=  None:
+#             data = cmd_recieved
+#             cmd_recieved = None
+#         cmd_pub.publish(data)
+#         rate.sleep()
+
+#     except ROSTimeMovedBackwardsException:
+#         print("World Reset")
