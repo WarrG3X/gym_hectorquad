@@ -20,6 +20,8 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(gazebo REQUIRED)
+find_package(octomap REQUIRED)
+
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -62,11 +64,11 @@ catkin_python_setup()
 # )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+add_service_files(
+  FILES
+  Octomap.srv
+)
+
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -76,10 +78,10 @@ catkin_python_setup()
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   geometry_msgs#   std_msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  geometry_msgs std_msgs octomap_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -113,8 +115,8 @@ catkin_python_setup()
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES gym_hectorquad
- CATKIN_DEPENDS geometry_msgs hector_quadrotor_gazebo message_generation roscpp rospy std_msgs
-#  DEPENDS system_lib
+ CATKIN_DEPENDS geometry_msgs hector_quadrotor_gazebo message_generation message_runtime roscpp rospy std_msgs octomap_msgs
+#  DEPENDS octomap gazebo
 )
 
 ###########
@@ -142,6 +144,8 @@ target_link_libraries(move ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
 
 add_library(gazebo_octomap SHARED src/plugins/gazebo_octomap_plugin.cpp)
 target_link_libraries(gazebo_octomap ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES})
+add_dependencies(gazebo_octomap ${catkin_EXPORTED_TARGETS})
+
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
