@@ -8,8 +8,8 @@
   <param name="world_file" value="$(arg world_file)"/>
   <arg name="graphics" default="true"/> 
   <param name="graphics" value="$(arg graphics)"/>
-  <!-- <arg name="env_name" default="HectorQuadReach-v1"/>  -->
-  <arg name="env_name" default="HectorQuadForest-v1"/> 
+  <arg name="env_name" default="HectorQuadReach-v1"/> 
+  <!-- <arg name="env_name" default="HectorQuadPayload-v1"/>  -->
   <param name="env_name" value="$(arg env_name)"/>
   
 

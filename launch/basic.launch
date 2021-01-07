@@ -2,7 +2,7 @@
 <launch>
   <!-- Define parameters from arguments -->
 
-  <arg name="world_name" default="empty"/> <!-- worldname is used to load correct config, name logging and find modified logname -->
+  <arg name="world_name" default="objects"/> <!-- worldname is used to load correct config, name logging and find modified logname -->
   <param name="world_name" value="$(arg world_name)"/>
   <arg name="world_file" default="$(find gym_hectorquad)/worlds/$(arg world_name).world"/> <!-- worldfile defines the actual gazebo world file loaded -->
   <param name="world_file" value="$(arg world_file)"/>
