@@ -27,8 +27,8 @@ git clone -b melodic https://github.com/ros-perception/vision_opencv.git
 git clone -b kinetic-devel https://github.com/tu-darmstadt-ros-pkg/hector_gazebo.git
 git clone -b kinetic-devel https://github.com/ros-simulation/gazebo_ros_pkgs.git
 
-
-git clone https://github.com/kkelchte/hector_quadrotor.git # We use Hector Quad from the DoShiCo paper instead of the original to get Bebop 2 Drone
+# We use Hector Quad from the DoShiCo paper instead of the original to get Bebop 2 Drone
+git clone https://github.com/kkelchte/hector_quadrotor.git
 git clone https://github.com/ROBOTIS-GIT/turtlebot3.git
 git clone https://github.com/ROBOTIS-GIT/turtlebot3_msgs.git 
 
@@ -52,9 +52,18 @@ hector_quadrotor_actions
 ```
 
 ## Testing
-```
-roslaunch gym_hectorquad drive.launch
 
+The following script will launch a Payload Environment where the drone will succesfully deliver the payload to the goal - 
+
+`roslaunch gym_hectorquad drive.launch`
+
+Other useful scripts - 
+```
+roslaunch gym_hectorquad basic.launch    # Starts the simulator with just the drone but no controllers
+roslaunch gym_hectorquad run_env.launch  # Launch a simple gym env
+roslaunch gym_hectorquad demo_gen.launch # For Collecting and saving demos using the drive script
+roslaunch gym_hectorquad eval.launch     # For Evaluating a trained policy
+roslaunch gym_hectorquad train.launch    # Training script (Requires baselines to be setup)
 ```
 
 
